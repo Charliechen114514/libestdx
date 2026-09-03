@@ -1,0 +1,20 @@
+# Build outputs
+build/
+out/
+cmake-build-*/
+
+# IDE
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+
+# Flash artifacts
+*.bin
+*.hex
+*.map
+*.elf
+*.lst
+
+# Claude Code local artifacts
+.claude/settings.local.json
