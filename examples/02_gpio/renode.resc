@@ -1,0 +1,21 @@
+# 02_gpio 的上机脚本。相对路径以仓库根解析(CMake target 的
+# WORKING_DIRECTORY 钉在仓库根)。
+# 启动:cmake --build build --target sim_gpio_example
+# 固件重编后在 monitor 里敲 runMacro $reset 一条命令重载续跑。
+# 注意:.resc 是 monitor 脚本,注释符是 #(不是 .repl 的 //)。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/02_gpio/gpio_example
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    start
+"""
+
+runMacro $reset

@@ -4,7 +4,7 @@
 #define HAL_RCC_MODULE_ENABLED
 
 // kernel 先行:它带着防环引导和 HAL 内核宏,保证本分片单独被引也成立。
-#include "libestdx/boards/stm32f1/kernel.hpp"
+#include "libestdx/boards/stm32f1/hal/kernel.hpp"
 
 // RCC 调频要同步改 flash 等待周期(HAL_RCC_ClockConfig 里调用
 // __HAL_FLASH_GET/SET_LATENCY),需要拉入 flash 头里的宏;
