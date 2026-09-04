@@ -1,0 +1,38 @@
+# 03_led 的上机脚本。相对路径以仓库根解析(CMake target 的
+# WORKING_DIRECTORY 钉在仓库根)。
+# 启动:cmake --build build --target sim_led_example
+# 固件重编后在 monitor 里敲 runMacro $reset 一条命令重载续跑。
+# 注意:.resc 是 monitor 脚本,注释符是 #(不是 .repl 的 //)。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/03_led/led_example
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    start
+"""
+
+# 诊断快照(活性对拍):GPIOC_ODR + HAL uwTick(虚拟 ms),固定顺序。
+# 03 的极性:ActiveLow,ODR bit13=0(打印 0x0000...)= on() 点亮。
+# watch 里 ODR 不动时用它分辨:uwTick 涨 = 固件活着只是没翻转,
+# uwTick 停 = 真死了。
+macro status
+"""
+    pause
+    sysbus ReadDoubleWord 0x4001100C
+    sysbus ReadDoubleWord 0x2000000C
+    start
+"""
+
+runMacro $reset
+
+# LED 直播:monitor 空闲(停在提示符)时每 700ms 打一行 GPIOC_ODR,
+# 0x00000000=on()(ActiveLow:低电平亮)/ 0x00002000=off()。
+# watch 靠 monitor 空闲驱动,连轴命令(如脚本里的 sleep)期间不触发。
+watch "sysbus ReadDoubleWord 0x4001100C" 700

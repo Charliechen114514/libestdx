@@ -5,6 +5,10 @@
 namespace estdx {
 enum class GpioDirection { Input, Output };
 
+// 极性:器件"激活"电平的高低,是板级电路事实(源电流/灌电流接法决定)。
+// 电平语言的词,和 GpioDirection 同族;LED/Button/继电器/CS 等组件共享。
+enum class GpioPolarity { ActiveHigh, ActiveLow };
+
 template <typename Concrete>
 concept GPIOPin = requires {
     { Concrete::mask } -> std::convertible_to<uint32_t>; // GPIO的掩码
