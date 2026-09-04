@@ -1,0 +1,207 @@
+// BluePill(STM32F103C8T6)平台模型 —— 裁剪自本机 Renode 1.16.1 自带的
+// platforms/cpus/stm32f103.repl(全家族最大配置),按 C8T6 中密度精确化:
+//   64K flash / 20K SRAM / GPIO A-C / TIM1-4 / USART1-3 / DMA1 / I2C1-2
+// 核心增量:RCC 从"tag 预置就绪位"升级为 Python 模型,HSE/PLL 握手与时钟
+// 切换全程可走通(官方平台切非 HSI 时钟必 HAL_TIMEOUT,根因是 CFGR 读回恒 0)。
+// 验证记录见 .claude/notes/log.md 2026-09-04:探针五连中 + blinky 跑通。
+
+// flash 同时映射在真地址 0x08000000 和启动别名 0x0(复位时从 0x0 向量表取 SP/PC)
+flash: Memory.MappedMemory @ {
+    sysbus 0x08000000;
+    sysbus 0x00000000
+}
+    size: 0x10000
+
+sram: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x5000
+
+nvic: IRQControllers.NVIC @ sysbus 0xE000E000
+    priorityMask: 0xF0
+    systickFrequency: 8000000   // 固件 HSI 8MHz 直跑;切 72MHz PLL 时在 resc 里同步改
+    IRQ -> cpu@0
+
+cpu: CPU.CortexM @ sysbus
+    cpuType: "cortex-m3"
+    nvic: nvic
+
+// 板载 LED:PC13,低电平点亮(模型默认高有效,"亮/灭"语义反着,翻转可见)
+led: Miscellaneous.LED @ gpioPortC 13
+
+usart1: UART.STM32_UART @ sysbus <0x40013800, +0x100>
+    -> nvic@37
+
+usart2: UART.STM32_UART @ sysbus <0x40004400, +0x100>
+    -> nvic@38
+
+usart3: UART.STM32_UART @ sysbus <0x40004800, +0x100>
+    -> nvic@39
+
+i2c1: I2C.STM32F4_I2C @ sysbus 0x40005400
+    EventInterrupt -> nvic@31
+    ErrorInterrupt -> nvic@32
+
+i2c2: I2C.STM32F4_I2C @ sysbus 0x40005800
+    EventInterrupt -> nvic@33
+    ErrorInterrupt -> nvic@34
+
+exti: IRQControllers.STM32F4_EXTI @ sysbus 0x40010400
+    numberOfOutputLines: 19
+    [0-4] -> nvic@[6-10]
+    [5-9] -> nvicInput23@[0-4]
+    [10-15] -> nvicInput40@[0-5]
+
+nvicInput23: Miscellaneous.CombinedInput @ none
+    numberOfInputs: 5
+    -> nvic@23
+
+nvicInput40: Miscellaneous.CombinedInput @ none
+    numberOfInputs: 6
+    -> nvic@40
+
+gpioPortA: GPIOPort.STM32F1GPIOPort @ sysbus <0x40010800, +0x400>
+    invertedAFPins: [[7, 1]]
+    [0-15] -> exti@[0-15]
+
+gpioPortB: GPIOPort.STM32F1GPIOPort @ sysbus <0x40010C00, +0x400>
+    invertedAFPins: [[13, 1], [14, 1], [15, 1], [0, 1], [1, 1]]
+    [0-15] -> exti@[0-15]
+
+gpioPortC: GPIOPort.STM32F1GPIOPort @ sysbus <0x40011000, +0x400>
+    [0-15] -> exti@[0-15]
+
+// D-G:C8T6 物理上不存在(LQFP48 只引出 A/B/C 与 PD0/1 晶振脚),
+// 但 STM32F1AFIO 构造器按 7 端口假定索引(传 3 个会越界崩溃),
+// 故模型层保留 —— 固件地址空间里永远摸不到,不影响"精确 C8T6"的承诺。
+gpioPortD: GPIOPort.STM32F1GPIOPort @ sysbus <0x40011400, +0x400>
+    [0-15] -> exti@[0-15]
+
+gpioPortE: GPIOPort.STM32F1GPIOPort @ sysbus <0x40011800, +0x400>
+    invertedAFPins: [[8, 1], [10, 1], [12, 1]]
+    [0-15] -> exti@[0-15]
+
+gpioPortF: GPIOPort.STM32F1GPIOPort @ sysbus <0x40011C00, +0x400>
+    [0-15] -> exti@[0-15]
+
+gpioPortG: GPIOPort.STM32F1GPIOPort @ sysbus <0x40012000, +0x400>
+    [0-15] -> exti@[0-15]
+
+afio: GPIOPort.STM32F1AFIO @ sysbus 0x40010000
+    gpioPorts: [gpioPortA, gpioPortB, gpioPortC, gpioPortD, gpioPortE, gpioPortF, gpioPortG]
+
+timer1: Timers.STM32_Timer @ sysbus 0x40012c00
+    BreakInterrupt -> nvic@24
+    UpdateInterrupt -> nvic@25
+    [TriggerInterrupt, CommutationInterrupt] -> nvic@[26, 26]
+    CaptureCompareInterrupt -> nvic@27
+    frequency: 10000000
+    initialLimit: 0xFFFF
+
+timer2: Timers.STM32_Timer @ sysbus 0x40000000
+    -> nvic@28
+    frequency: 10000000
+    initialLimit: 0xFFFF
+
+timer3: Timers.STM32_Timer @ sysbus 0x40000400
+    -> nvic@29
+    frequency: 10000000
+    initialLimit: 0xFFFF
+
+timer4: Timers.STM32_Timer @ sysbus 0x40000800
+    -> nvic@30
+    frequency: 10000000
+    initialLimit: 0xFFFF
+
+// C8T6 实有 DMA1(7 通道)。注意:Renode 1.16.1 的 UART/Timer 模型不暴露
+// DMA 请求脚(仅 master 分支支持),故本模型只连了通道中断到 NVIC ——
+// 寄存器可读写、内存搬运可用,外设触发的传输暂不可用,升级 Renode 再补。
+dma1: DMA.STM32G0DMA @ sysbus 0x40020000
+    numberOfChannels: 7
+    [0-6] -> nvic@[11-17]
+
+// RCC —— 本模型的核心增量(官方无 F1 RCC 真模型,只 tag 了 CR 复位值)。
+// RM0008 握手协议的合成规则就三条:
+//   1. 就绪位跟随使能位:HSIRDY=HSION、HSERDY=HSEON、PLLRDY=PLLon
+//      (BDCR 的 LSERDY、CSR 的 LSIRDY 同理,给将来 RTC 课留门)
+//   2. SWS[3:2] 镜像 SW[1:0]:时钟切换零延迟回执
+//   3. 其余寄存器 read-as-written:时钟使能/复位/中断标志等,模型无副作用
+// 脚本分支结构须仿官方 stm32g0.repl:IsWrite / elif IsRead,Init 请求
+// 不走值合成路径,状态用整字典赋值初始化。
+rcc: Python.PythonPeripheral @ sysbus 0x40021000
+    size: 0x100
+    initable: true
+    script: '''
+if request.IsInit:
+    data = {'cr': 0x00000083, 'cfgr': 0x00000000, 'cir': 0,
+            'ahbenr': 0, 'apb2enr': 0, 'apb1enr': 0, 'bdcr': 0, 'csr': 0}
+if request.IsWrite:
+    o = request.Offset
+    if o == 0x00:
+        data['cr'] = request.Value
+    elif o == 0x04:
+        data['cfgr'] = request.Value
+    elif o == 0x08:
+        data['cir'] = request.Value
+    elif o == 0x14:
+        data['ahbenr'] = request.Value
+    elif o == 0x18:
+        data['apb2enr'] = request.Value
+    elif o == 0x1C:
+        data['apb1enr'] = request.Value
+    elif o == 0x20:
+        data['bdcr'] = request.Value
+    elif o == 0x24:
+        data['csr'] = request.Value
+elif request.IsRead:
+    o = request.Offset
+    if o == 0x00:
+        v = data['cr']
+        v |= (v & 0x1) << 1
+        v |= ((v >> 16) & 0x1) << 17
+        v |= ((v >> 24) & 0x1) << 25
+    elif o == 0x04:
+        v = (data['cfgr'] & 0xFFFFFFF3) | ((data['cfgr'] & 0x3) << 2)
+    elif o == 0x08:
+        v = data['cir']
+    elif o == 0x14:
+        v = data['ahbenr']
+    elif o == 0x18:
+        v = data['apb2enr']
+    elif o == 0x1C:
+        v = data['apb1enr']
+    elif o == 0x20:
+        v = data['bdcr'] | ((data['bdcr'] & 0x1) << 1)
+    elif o == 0x24:
+        v = data['csr'] | ((data['csr'] & 0x1) << 1)
+    else:
+        v = 0
+    request.Value = v
+'''
+
+// 定时器→引脚的 AF 互连(已剔除 C8T6 48 脚封装上不存在的 D/E/F/G 端口路由)
+timer1:
+    0 -> gpioPortA#08@01 | gpioPortB#13@01 | gpioPortA#07@01
+    1 -> gpioPortA#09@01 | gpioPortB#14@01 | gpioPortB#00@01
+    2 -> gpioPortA#10@01 | gpioPortB#15@01 | gpioPortB#01@01
+    3 -> gpioPortA#11@01
+
+timer2:
+    0 -> gpioPortA#00@02 | gpioPortA#15@02
+    1 -> gpioPortA#01@02 | gpioPortB#03@02
+    2 -> gpioPortA#02@02 | gpioPortB#10@02
+    3 -> gpioPortA#03@02 | gpioPortB#11@02
+
+timer3:
+    0 -> gpioPortA#06@03 | gpioPortB#04@03 | gpioPortC#06@03
+    1 -> gpioPortA#07@03 | gpioPortB#05@03 | gpioPortC#07@03
+    2 -> gpioPortB#00@03 | gpioPortC#08@03
+    3 -> gpioPortB#01@03 | gpioPortC#09@03
+
+timer4:
+    0 -> gpioPortB#06@04
+    1 -> gpioPortB#07@04
+    2 -> gpioPortB#08@04
+    3 -> gpioPortB#09@04
+
+sysbus:
+    init:
+        ApplySVD @https://dl.antmicro.com/projects/renode/svd/STM32F103.svd.gz

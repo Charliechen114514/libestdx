@@ -17,4 +17,4 @@ compile_commands.json
 *.lst
 
 # Claude Code local artifacts
-.claude/settings.local.json
+.claude
