@@ -5,15 +5,11 @@
 #include "libestdx/boards/stm32f1/gpio.hpp"
 
 using Led =
-    estdx::stm32f1::Gpio<estdx::stm32f1::GpioPort::C, GPIO_PIN_13,
-                         estdx::GpioDirection::Output>;
+    estdx::stm32f1::Gpio<estdx::stm32f1::GpioPort::C, GPIO_PIN_13, estdx::GpioDirection::Output>;
 
-// 概念在消费侧收货:LED 类型必须满足 GPIOOutputPin 才进得了下面的模板。
-// (消费者模板是下一步;此处先用 static_assert 站岗,链路通了再长。)
 static_assert(estdx::GPIOOutputPin<Led>);
 
-int main()
-{
+int main() {
     HAL_Init();
     Led::init();
 

@@ -19,7 +19,9 @@ add_custom_command(TARGET gpio_example POST_BUILD
 
 add_custom_target(sim_gpio_example
     DEPENDS gpio_example
-    COMMAND renode --console -e "include @${CMAKE_SOURCE_DIR}/examples/02_gpio/renode.resc"
+    # --disable-xwt:Renode 1.16 默认起 xwt UI,WSL2 无 X 下卡死在 GUI
+    # 初始化(零输出假死);console 模式加它才落地。
+    COMMAND renode --console --disable-xwt -e "include @${CMAKE_SOURCE_DIR}/examples/02_gpio/renode.resc"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     USES_TERMINAL
 )

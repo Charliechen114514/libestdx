@@ -18,4 +18,20 @@ macro reset
     start
 """
 
+# 诊断快照(活性对拍):GPIOC_ODR + HAL uwTick(虚拟 ms),固定顺序。
+# watch 里 ODR 不动时用它分辨:uwTick 涨 = 固件活着只是没翻转,
+# uwTick 停 = 真死了。
+macro status
+"""
+    pause
+    sysbus ReadDoubleWord 0x4001100C
+    sysbus ReadDoubleWord 0x2000000C
+    start
+"""
+
 runMacro $reset
+
+# LED 直播:monitor 空闲(停在提示符)时每 700ms 打一行 GPIOC_ODR,
+# 0x00002000=灭 / 0x00000000=亮,滚动翻转 = 灯在闪。
+# watch 靠 monitor 空闲驱动,连轴命令(如脚本里的 sleep)期间不触发。
+watch "sysbus ReadDoubleWord 0x4001100C" 700

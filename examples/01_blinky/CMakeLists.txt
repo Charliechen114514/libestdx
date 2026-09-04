@@ -22,7 +22,7 @@ add_custom_command(TARGET blinky POST_BUILD
 
 add_custom_target(sim
     DEPENDS blinky
-    COMMAND renode --console -e "include @${CMAKE_SOURCE_DIR}/examples/01_blinky/renode.resc"
+    COMMAND renode --console --disable-xwt -e "include @${CMAKE_SOURCE_DIR}/examples/01_blinky/renode.resc"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     USES_TERMINAL
 )
