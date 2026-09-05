@@ -16,7 +16,9 @@ enum class GpioPort : uintptr_t {
     E = GPIOE_BASE,
 };
 
-template <GpioPort PORT, uint16_t MASK, estdx::GpioDirection DIRECTION> struct Gpio {
+template <GpioPort PORT, uint16_t MASK, estdx::GpioDirection DIRECTION,
+          GpioPull PULL = GpioPull::NoPull>
+struct Gpio {
     static inline GPIO_TypeDef* const port =
         reinterpret_cast<GPIO_TypeDef*>(static_cast<uintptr_t>(PORT));
     static constexpr uint16_t mask = MASK;
@@ -28,7 +30,7 @@ template <GpioPort PORT, uint16_t MASK, estdx::GpioDirection DIRECTION> struct G
         GPIO_InitTypeDef def{};
         def.Pin = mask;
         def.Mode = direction_mode();
-        def.Pull = GPIO_NOPULL;
+        def.Pull = pull_mode();
         def.Speed = GPIO_SPEED_FREQ_LOW;
         HAL_GPIO_Init(port, &def);
     }
@@ -40,23 +42,35 @@ template <GpioPort PORT, uint16_t MASK, estdx::GpioDirection DIRECTION> struct G
 
   private:
     static constexpr uint32_t direction_mode() {
-        if constexpr (DIRECTION == estdx::GpioDirection::Output)
+        if constexpr (DIRECTION == estdx::GpioDirection::Output) {
             return GPIO_MODE_OUTPUT_PP;
-        else
+        } else {
             return GPIO_MODE_INPUT;
+        }
+    }
+
+    static constexpr uint32_t pull_mode() {
+        if constexpr (PULL == GpioPull::Up) {
+            return GPIO_PULLUP;
+        } else if constexpr (PULL == GpioPull::Down) {
+            return GPIO_PULLDOWN;
+        } else {
+            return GPIO_NOPULL;
+        }
     }
 
     static void enable_clock() {
-        if constexpr (PORT == GpioPort::A)
+        if constexpr (PORT == GpioPort::A) {
             __HAL_RCC_GPIOA_CLK_ENABLE();
-        else if constexpr (PORT == GpioPort::B)
+        } else if constexpr (PORT == GpioPort::B) {
             __HAL_RCC_GPIOB_CLK_ENABLE();
-        else if constexpr (PORT == GpioPort::C)
+        } else if constexpr (PORT == GpioPort::C) {
             __HAL_RCC_GPIOC_CLK_ENABLE();
-        else if constexpr (PORT == GpioPort::D)
+        } else if constexpr (PORT == GpioPort::D) {
             __HAL_RCC_GPIOD_CLK_ENABLE();
-        else if constexpr (PORT == GpioPort::E)
+        } else if constexpr (PORT == GpioPort::E) {
             __HAL_RCC_GPIOE_CLK_ENABLE();
+        }
     }
 };
 

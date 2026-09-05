@@ -1,0 +1,67 @@
+# 04_button 的上机脚本。相对路径以仓库根解析(CMake target 的
+# WORKING_DIRECTORY 钉在仓库根)。
+# 启动:cmake --build build --target sim_button_example
+# 固件重编后在 monitor 里敲 runMacro $reset 一条命令重载续跑。
+# 注意:.resc 是 monitor 脚本,注释符是 #(不是 .repl 的 //)。
+#
+# 按键(monitor 驱动 gpioPortA 输入;Button 外设建模试过:GPIO 挂接的
+# 外设是端口嵌套设备,monitor 不可直达,弃):
+#   runMacro $press  # 按一下(按下→0.6s→松开)
+#   runMacro $down   # 按住
+#   runMacro $up     # 松开
+# 注意:**执行任何命令都会打断 watch 直播**(屏幕停在旧值,像"没反应",
+# 实则一切正常)。看完按键效果的标准姿势:敲 $down 后**重敲一遍 watch
+# 命令**,即见 0x0000 流。OnGPIO 的 "Trying to set..." WARNING 是告知
+# 性的,注入实际生效(以 IDR/status 为准)。
+# 模型不知道上下拉(电阻行为不模拟),上电先置高模拟上拉空闲态,
+# 否则默认低电平会被固件当成"一直按着"。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/04_button/button_example
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    gpioPortA OnGPIO 0 true
+    start
+"""
+
+macro press
+"""
+    gpioPortA OnGPIO 0 false
+    sleep 0.6
+    gpioPortA OnGPIO 0 true
+"""
+
+macro down
+"""
+    gpioPortA OnGPIO 0 false
+"""
+
+macro up
+"""
+    gpioPortA OnGPIO 0 true
+"""
+
+# 诊断快照:GPIOA_IDR(0x40010808,bit0:0=按下)、GPIOC_ODR(bit13:0=亮)、
+# uwTick(虚拟 ms)。
+macro status
+"""
+    pause
+    sysbus ReadDoubleWord 0x40010808
+    sysbus ReadDoubleWord 0x4001100C
+    sysbus ReadDoubleWord 0x2000000C
+    start
+"""
+
+runMacro $reset
+
+# LED 直播:monitor 空闲时每 700ms 打一行 GPIOC_ODR,
+# 0x00000000=on()(ActiveLow)/ 0x00002000=off()。
+# 按/放按键用上面两行 setGpioState,watch 里看 LED 跟随。
+watch "sysbus ReadDoubleWord 0x4001100C" 700

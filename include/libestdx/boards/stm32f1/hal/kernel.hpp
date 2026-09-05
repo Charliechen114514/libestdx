@@ -6,9 +6,9 @@
 
 #define HAL_MODULE_ENABLED
 
-#define USE_RTOS          0U    /* 不上 RTOS,SysTick 时基归 HAL */
+#define USE_RTOS 0U             /* 不上 RTOS,SysTick 时基归 HAL */
 #define TICK_INT_PRIORITY 0x0FU /* SysTick 优先级给最低 */
-#define PREFETCH_ENABLE   1U    /* F1 flash 预取 */
+#define PREFETCH_ENABLE 1U      /* F1 flash 预取 */
 
 // HAL 源码到处调用 assert_param,默认置空;排查参数问题时再换真实现
 #define assert_param(expr) ((void)0U)
@@ -24,8 +24,8 @@
 // 再撤掉假 guard 正式引入 hal.h 补上它自己的声明。从 hal.h 进来时 guard 已立,
 // 整段是空操作,零开销。
 #ifndef __STM32F1xx_HAL_H
-#define __STM32F1xx_HAL_H /* 假 guard,只为断环 */
-#include "stm32f1xx_hal_def.h"
-#undef __STM32F1xx_HAL_H
-#include "stm32f1xx_hal.h"
+#    define __STM32F1xx_HAL_H /* 假 guard,只为断环 */
+#    include "stm32f1xx_hal_def.h"
+#    undef __STM32F1xx_HAL_H
+#    include "stm32f1xx_hal.h"
 #endif

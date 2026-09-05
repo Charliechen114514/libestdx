@@ -4,10 +4,8 @@
 #include <type_traits>
 namespace estdx {
 enum class GpioDirection { Input, Output };
-
-// 极性:器件"激活"电平的高低,是板级电路事实(源电流/灌电流接法决定)。
-// 电平语言的词,和 GpioDirection 同族;LED/Button/继电器/CS 等组件共享。
 enum class GpioPolarity { ActiveHigh, ActiveLow };
+enum class GpioPull { NoPull, Up, Down };
 
 template <typename Concrete>
 concept GPIOPin = requires {
@@ -25,6 +23,13 @@ concept GPIOOutputPin = GPIOPin<Concrete> && requires {
     Concrete::set();    // On
     Concrete::reset();  // Off
     Concrete::toggle(); // Flip
+};
+
+template <typename Concrete>
+concept GPIOInputPin = GPIOPin<Concrete> && requires {
+    Concrete::direction == GpioDirection::Input;
+    // Tells level sync, as aysnc requires wrapper of TASK
+    { Concrete::level() } -> std::convertible_to<bool>;
 };
 
 } // namespace estdx
