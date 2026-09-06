@@ -25,3 +25,22 @@ add_custom_target(sim_gpio_example
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     USES_TERMINAL
 )
+
+# 真机烧录(抄 TAMCPP:openocd + ST-Link;WSL2 下先 usbipd attach + chmod 666 设备节点)。
+add_custom_target(flash_gpio_example
+    COMMAND openocd
+            -f interface/stlink.cfg
+            -f target/stm32f1x.cfg
+            -c "program $<TARGET_FILE_DIR:gpio_example>/gpio_example.bin verify reset exit 0x08000000"
+    DEPENDS gpio_example
+    COMMENT "Flashing gpio_example.bin via OpenOCD (ST-Link)"
+)
+
+# 整片擦除(换固件 / 排查用)。
+add_custom_target(erase_gpio_example
+    COMMAND openocd
+            -f interface/stlink.cfg
+            -f target/stm32f1x.cfg
+            -c "init; halt; stm32f1x mass_erase 0; exit"
+    COMMENT "Mass-erasing STM32F1 flash via OpenOCD"
+)

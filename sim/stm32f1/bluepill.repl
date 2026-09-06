@@ -17,7 +17,8 @@ sram: Memory.MappedMemory @ sysbus 0x20000000
 
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
     priorityMask: 0xF0
-    systickFrequency: 8000000   // 固件 HSI 8MHz 直跑;切 72MHz PLL 时在 resc 里同步改
+    // SysTick 参考频率对齐固件 HCLK(64M);构造参数不可运行时改,固件换时钟时同步改。
+    systickFrequency: 64000000
     IRQ -> cpu@0
 
 cpu: CPU.CortexM @ sysbus
@@ -118,6 +119,23 @@ dma1: DMA.STM32G0DMA @ sysbus 0x40020000
     numberOfChannels: 7
     [0-6] -> nvic@[11-17]
 
+// 外设位带别名区:HAL 开 PLL/HSI 走位带写,别名区不映射会静默丢失,BitBanding 翻译回真实地址做 RMW。
+bitBand: Miscellaneous.BitBanding @ sysbus <0x42000000, +0x2000000>
+    peripheralBase: 0x40000000
+
+// FLASH 只建 ACR(读写透传):ClockConfig 设延迟要读回校验,SVD 桩过不了。
+flashAcr: Python.PythonPeripheral @ sysbus 0x40022000
+    size: 4
+    initable: true
+    script: '''
+if request.IsInit:
+    data = {'acr': 0x30}
+if request.IsWrite:
+    data['acr'] = request.Value
+elif request.IsRead:
+    request.Value = data['acr']
+'''
+
 // RCC —— 本模型的核心增量(官方无 F1 RCC 真模型,只 tag 了 CR 复位值)。
 // RM0008 握手协议的合成规则就三条:
 //   1. 就绪位跟随使能位:HSIRDY=HSION、HSERDY=HSEON、PLLRDY=PLLon
@@ -136,7 +154,8 @@ if request.IsInit:
 if request.IsWrite:
     o = request.Offset
     if o == 0x00:
-        data['cr'] = request.Value
+        # RDY 位只读(0x02020002 = HSIRDY|HSERDY|PLLRDY),位带 RMW 会烤死,剥掉后读侧重合成。
+        data['cr'] = request.Value & ~0x02020002
     elif o == 0x04:
         data['cfgr'] = request.Value
     elif o == 0x08:
@@ -148,9 +167,11 @@ if request.IsWrite:
     elif o == 0x1C:
         data['apb1enr'] = request.Value
     elif o == 0x20:
-        data['bdcr'] = request.Value
+        # LSERDY(bit1)同理只读。
+        data['bdcr'] = request.Value & ~0x2
     elif o == 0x24:
-        data['csr'] = request.Value
+        # LSIRDY(bit1)同理只读。
+        data['csr'] = request.Value & ~0x2
 elif request.IsRead:
     o = request.Offset
     if o == 0x00:

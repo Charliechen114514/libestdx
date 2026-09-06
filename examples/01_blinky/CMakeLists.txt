@@ -26,3 +26,22 @@ add_custom_target(sim
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     USES_TERMINAL
 )
+
+# 真机烧录(抄 TAMCPP:openocd + ST-Link;WSL2 下先 usbipd attach + chmod 666 设备节点)。
+add_custom_target(flash
+    COMMAND openocd
+            -f interface/stlink.cfg
+            -f target/stm32f1x.cfg
+            -c "program $<TARGET_FILE_DIR:blinky>/blinky.bin verify reset exit 0x08000000"
+    DEPENDS blinky
+    COMMENT "Flashing blinky.bin via OpenOCD (ST-Link)"
+)
+
+# 整片擦除(换固件 / 排查用)。
+add_custom_target(erase
+    COMMAND openocd
+            -f interface/stlink.cfg
+            -f target/stm32f1x.cfg
+            -c "init; halt; stm32f1x mass_erase 0; exit"
+    COMMENT "Mass-erasing STM32F1 flash via OpenOCD"
+)
