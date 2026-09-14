@@ -37,11 +37,11 @@ usart2: UART.STM32_UART @ sysbus <0x40004400, +0x100>
 usart3: UART.STM32_UART @ sysbus <0x40004800, +0x100>
     -> nvic@39
 
-i2c1: I2C.STM32F4_I2C @ sysbus 0x40005400
+i2c1: I2C.STM32F1_I2C @ sysbus 0x40005400
     EventInterrupt -> nvic@31
     ErrorInterrupt -> nvic@32
 
-i2c2: I2C.STM32F4_I2C @ sysbus 0x40005800
+i2c2: I2C.STM32F1_I2C @ sysbus 0x40005800
     EventInterrupt -> nvic@33
     ErrorInterrupt -> nvic@34
 
