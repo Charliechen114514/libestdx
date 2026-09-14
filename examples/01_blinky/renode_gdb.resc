@@ -1,0 +1,18 @@
+# 01_blinky 的 GDB 调试剧本:加载固件并开 GDB 服务,停在等连接。
+# 启动一条龙:cmake --build build-debug --target blinky_gdb
+#   (target 会用生成器表达式把当前 build 目录的 ELF 喂给 $bin)
+# 手动跑:从仓库根 renode --console --disable-xwt examples/01_blinky/renode_gdb.resc
+#   (@ 相对路径按 cwd 解析;此时吃下面的 ?= 默认值,想要行号断点保持 build-debug)
+# 调 Release 就把 build-debug 换成 build,VSCode launch.json 的 executable 记得同步。
+# 注意:.resc 是 monitor 脚本,注释符是 #(不是 .repl 的 //)。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build-debug/examples/01_blinky/blinky
+
+sysbus LoadELF $bin
+
+machine StartGdbServer 3333

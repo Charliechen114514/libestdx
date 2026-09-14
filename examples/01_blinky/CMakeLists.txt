@@ -27,6 +27,19 @@ add_custom_target(sim
     USES_TERMINAL
 )
 
+# GDB 调试一条龙:加载固件并开 GDB 服务(3333),等 VSCode/命令行 gdb 连接。
+# $bin 用生成器表达式喂给 renode:从 build/ 还是 build-debug/ 调,加载的就是
+# 那个目录的 ELF,两侧口径天然一致(resc 里的 ?= 默认值只服务手动跑)。
+add_custom_target(blinky_gdb
+    DEPENDS blinky
+    COMMAND renode --console --disable-xwt
+            -e "$bin=@$<TARGET_FILE:blinky>"
+            -e "include @${CMAKE_SOURCE_DIR}/examples/01_blinky/renode_gdb.resc"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    USES_TERMINAL
+    VERBATIM
+)
+
 # 真机烧录(抄 TAMCPP:openocd + ST-Link;WSL2 下先 usbipd attach + chmod 666 设备节点)。
 add_custom_target(flash
     COMMAND openocd
