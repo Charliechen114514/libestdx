@@ -1,11 +1,12 @@
+#pragma once
 #include "libestdx/gpio/gpio_base.hpp"
 
-namespace estdx {
+namespace estdx::device {
 
-template <estdx::GPIOInputPin Pin, estdx::GpioPolarity POLARITY = GpioPolarity::ActiveLow>
+template <gpio::GPIOInputPin Pin, gpio::GpioPolarity POLARITY = gpio::GpioPolarity::ActiveLow>
 struct Button {
     static bool is_pressed() {
-        if constexpr (POLARITY == GpioPolarity::ActiveLow) {
+        if constexpr (POLARITY == gpio::GpioPolarity::ActiveLow) {
             return !Pin::level();
         } else {
             return Pin::level();
@@ -13,4 +14,4 @@ struct Button {
     }
 };
 
-} // namespace estdx
+} // namespace estdx::device

@@ -5,10 +5,10 @@
 #include "libestdx/boards/stm32f1/gpio.hpp"
 #include "stm32f1xx_hal.h" // SystemClock_Config 直接用 RCC API,显式引入
 
-using Led =
-    estdx::stm32f1::Gpio<estdx::stm32f1::GpioPort::C, GPIO_PIN_13, estdx::GpioDirection::Output>;
+using Led = estdx::stm32f1::Gpio<estdx::stm32f1::GpioPort::C, GPIO_PIN_13,
+                                 estdx::gpio::GpioDirection::Output>;
 
-static_assert(estdx::GPIOOutputPin<Led>);
+static_assert(estdx::gpio::GPIOOutputPin<Led>);
 
 // 真机时钟配置(抄 TAMCPP):HSI 8M ÷2 ×16 = 64M PLL,APB1 ÷2,flash 延迟 2。
 static void SystemClock_Config() {

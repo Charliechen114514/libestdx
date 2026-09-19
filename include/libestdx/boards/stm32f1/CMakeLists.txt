@@ -14,6 +14,8 @@ set(HAL_SRC
     ${STM32F1_ROOT}/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c
     ${STM32F1_ROOT}/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c   # gpio.hpp
     ${STM32F1_ROOT}/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio_ex.c
+    ${STM32F1_ROOT}/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_dma.c    # UART HAL links DMA entry points
+    ${STM32F1_ROOT}/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c   # uart.hpp
 )
 
 add_library(hal STATIC

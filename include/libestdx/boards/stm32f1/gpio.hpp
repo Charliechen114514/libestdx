@@ -4,7 +4,7 @@
 
 #include "libestdx/boards/stm32f1/hal/gpio.hpp" // GPIO_TypeDef + HAL GPIO 调用
 #include "libestdx/boards/stm32f1/hal/rcc.hpp"  // __HAL_RCC_GPIOx_CLK_ENABLE
-#include "libestdx/gpio/gpio_base.hpp"          // estdx::GpioDirection + 概念
+#include "libestdx/gpio/gpio_base.hpp"          // estdx::gpio 词汇 + 概念
 
 namespace estdx::stm32f1 {
 
@@ -16,8 +16,8 @@ enum class GpioPort : uintptr_t {
     E = GPIOE_BASE,
 };
 
-template <GpioPort PORT, uint16_t MASK, estdx::GpioDirection DIRECTION,
-          GpioPull PULL = GpioPull::NoPull>
+template <GpioPort PORT, uint16_t MASK, gpio::GpioDirection DIRECTION,
+          gpio::GpioPull PULL = gpio::GpioPull::NoPull>
 struct Gpio {
     static inline GPIO_TypeDef* const port =
         reinterpret_cast<GPIO_TypeDef*>(static_cast<uintptr_t>(PORT));
@@ -42,7 +42,7 @@ struct Gpio {
 
   private:
     static constexpr uint32_t direction_mode() {
-        if constexpr (DIRECTION == estdx::GpioDirection::Output) {
+        if constexpr (DIRECTION == gpio::GpioDirection::Output) {
             return GPIO_MODE_OUTPUT_PP;
         } else {
             return GPIO_MODE_INPUT;
@@ -50,9 +50,9 @@ struct Gpio {
     }
 
     static constexpr uint32_t pull_mode() {
-        if constexpr (PULL == GpioPull::Up) {
+        if constexpr (PULL == gpio::GpioPull::Up) {
             return GPIO_PULLUP;
-        } else if constexpr (PULL == GpioPull::Down) {
+        } else if constexpr (PULL == gpio::GpioPull::Down) {
             return GPIO_PULLDOWN;
         } else {
             return GPIO_NOPULL;

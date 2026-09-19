@@ -14,9 +14,6 @@ ColumnLimit: 100
 # 大括号风格: 附加式 { 在语句末尾
 BreakBeforeBraces: Attach
 
-# 强制大括号: if/else/for/while 的单语句体也必须套 {},杜绝 Apple goto-fail 式事故
-InsertBraces: true
-
 # 指针/引用星号位置: 左侧 (int* a)
 PointerAlignment: Left
 DerivePointerAlignment: false
@@ -27,7 +24,8 @@ DerivePointerAlignment: false
 
 # 函数声明: 返回类型和函数名在同一行
 AlwaysBreakAfterReturnType: None
-AlwaysBreakTemplateDeclarations: No
+# 模板声明后断行: template<...> 单独一行,声明体另起(原名 AlwaysBreakTemplateDeclarations,clang-format 19+ 改名)
+BreakTemplateDeclarations: Yes
 
 # 结构体初始化: 按位置赋值
 # C++11UnifiedBraceList: false 使用传统风格

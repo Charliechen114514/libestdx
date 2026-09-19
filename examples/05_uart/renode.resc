@@ -1,0 +1,13 @@
+# USART1 console for examples/05_uart. The PTY link can be overridden before include.
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/05_uart/uart_example
+$uart_pty?="/tmp/libestdx-uart"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+sysbus LoadELF $bin
+start
