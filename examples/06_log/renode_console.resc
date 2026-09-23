@@ -1,0 +1,13 @@
+# Human-friendly variant: log lines print straight into this Renode console
+# via the UART analyzer (with host/virtual timestamps). The PTY variant
+# (renode.resc) stays the automation surface for check_renode.py.
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/06_log/log_example
+showAnalyzer usart1
+
+sysbus LoadELF $bin
+start

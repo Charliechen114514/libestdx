@@ -35,6 +35,18 @@ add_custom_target(check_log_renode
     USES_TERMINAL
 )
 
+# Console variant: log lines print into the Renode console itself, no
+# second terminal needed. Automation still uses the PTY variant above.
+add_custom_target(sim_log_console
+    DEPENDS log_example
+    COMMAND ${CMAKE_COMMAND} -E env XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/renode-config
+            renode --console --disable-xwt
+            -e "\\$$bin=@$<TARGET_FILE:log_example>"
+            -e "include @${CMAKE_SOURCE_DIR}/examples/06_log/renode_console.resc"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    USES_TERMINAL
+)
+
 add_custom_target(flash_log_example
     DEPENDS log_example
     COMMAND openocd
