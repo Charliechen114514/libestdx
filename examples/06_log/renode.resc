@@ -1,0 +1,13 @@
+# One-way log stream for examples/07_log. The PTY link can be overridden before include.
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/06_log/log_example
+$uart_pty?="/tmp/libestdx-log"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+sysbus LoadELF $bin
+start
