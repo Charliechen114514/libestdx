@@ -26,6 +26,8 @@ cmake --build build --target sim_led_example     # 03_led
 cmake --build build --target sim_button_example  # 04_button
 cmake --build build --target sim_uart_example    # 05_uart, USART1 PTY at /tmp/libestdx-uart
 cmake --build build --target check_uart_renode   # UART command console check
+cmake --build build --target sim_log_example     # 06_log, USART1 PTY at /tmp/libestdx-log
+cmake --build build --target check_log_renode    # log stream check (banner/pruning/timestamps)
 ```
 
 目标自带 `--console --disable-xwt`。前四个示例的 `watch` 会直播 GPIO ODR；
@@ -47,6 +49,30 @@ cmake --build build --target sim_uart_example
 # 终端 B（仅连接 Renode 的虚拟串口）
 screen /tmp/libestdx-uart 115200
 ```
+
+### 日志（06_log）
+
+`libestdx/logger/` 提供零开销日志：拼接式与 `std::format` 风格两种语法、
+编译期级别裁剪、无宏的 `source_location` 元数据、可选毫秒时间戳。
+
+```cpp
+using Log = estdx::logger::Logger<estdx::logger::UartLogSink<Serial>,
+                                  estdx::logger::LogLevel::Info, 128,
+                                  estdx::stm32f1::HalTickClock>;
+
+Log::Self().info(Tag("led"), "blink=", n);            // 拼接式
+Log::Self().infof(Tag("ledf"), "n={} hex={:x}", n, n); // format 语法({} / {:x} / {:N})
+```
+
+行格式 `[123ms][Info ][tag][file:line] payload`（时间戳与位置段按配置裁剪）。
+低于 `MinLevel` 的日志**连同字符串字面量一起**不进固件——用
+`arm-none-eabi-strings` 对比 `MinLevel=Info/Debug` 的 `.bin` 可实证
+（06_log 里埋了验证 marker）。自定义类型特化
+`estdx::logger::Formatter<MyType>` 即可入日志，形状同 `std::formatter`。
+格式串错误（字段数不符、非法 spec、`{:x}` 用于非整数）在**编译期**被
+非 constexpr 信标函数拒绝，错误信息即函数名。
+v1 边界：阻塞发送、仅线程上下文（ISR 禁用）、无 float、单 sink。
+
 
 退出 `screen`：按 `Ctrl-A`、`K`、`Y`；退出 Renode：在 monitor 输入 `quit`。
 
