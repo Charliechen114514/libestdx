@@ -17,5 +17,11 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Diagnostics must not bake absolute build paths into the firmware
+# (source_location / __FILE__ / reproducible builds). Genex keeps the flag
+# away from ASM.
+add_compile_options(
+    "$<$<COMPILE_LANGUAGE:C,CXX>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>")
+
 add_subdirectory(include/libestdx/boards/stm32f1)
 add_subdirectory(examples)

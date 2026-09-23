@@ -4,7 +4,7 @@ set(CMAKE_SYSTEM_PROCESSOR cortex-m3)
 set(CROSS_COMPILE arm-none-eabi-)
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake")
 
-set(MCU_FLAGS "-mcpu=cortex-m3 -mthumb")
+set(MCU_FLAGS "-mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections")
 
 set(CMAKE_C_FLAGS_INIT "${MCU_FLAGS}")
 set(CMAKE_CXX_FLAGS_INIT "${MCU_FLAGS} -fno-exceptions -fno-rtti -fno-threadsafe-statics")

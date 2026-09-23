@@ -66,6 +66,33 @@ struct Uart {
         });
     }
 
+    // Best-effort path for callers that must not die on a dead line
+    // (logging): bounded timeout instead of HAL_MAX_DELAY — with the UART
+    // clock off, HAL_MAX_DELAY would hang forever; a bound turns the hang
+    // into a false return. Timeout derives from the compile-time baud:
+    // 8N1 = 10 line bits per byte, doubled for margin (HAL polls in 1 ms
+    // ticks; a slow-but-alive line must not time out).
+    static bool try_send(std::span<const std::byte> data)
+        requires(CONFIG.word_length == uart::WordLength::Bits8)
+    {
+        auto& handle = detail::UartState<INSTANCE>::handle;
+        constexpr auto max_chunk = std::numeric_limits<std::uint16_t>::max();
+        for (std::size_t offset = 0; offset < data.size();) {
+            const std::size_t remaining = data.size() - offset;
+            const auto count =
+                static_cast<std::uint16_t>(remaining > max_chunk ? max_chunk : remaining);
+            const std::uint32_t timeout =
+                static_cast<std::uint32_t>(count) * 20000 / CONFIG.baud + 10;
+            if (HAL_UART_Transmit(&handle,
+                                  reinterpret_cast<const std::uint8_t*>(data.data() + offset),
+                                  count, timeout) != HAL_OK) {
+                return false;
+            }
+            offset += count;
+        }
+        return true;
+    }
+
     static void receive(std::span<std::byte> buffer)
         requires(CONFIG.word_length == uart::WordLength::Bits8)
     {
