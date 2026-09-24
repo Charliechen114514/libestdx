@@ -1,0 +1,80 @@
+# 07_button_events 的自动化面(check_renode.py include 这个,无 watch 噪音)。
+# 人看的 LED 直播版在 renode_watch.resc。相对路径以仓库根解析(CMake
+# target 的 WORKING_DIRECTORY 钉在仓库根)。
+# 触摸注入(monitor 敲;模型不知道上下拉,reset 里先置低模拟模块空闲):
+#   runMacro $press    # 干净摸一下(摸 0.3s 松)
+#   runMacro $long     # 摸住 1s(触发长按)再松开
+#   runMacro $bounce   # 带抖动摸住(3 次上升沿)→ 0.9s → 松开
+# 时序纪律:monitor 的 sleep 等 host 时间,虚拟时间不成比例 —— 注入宏
+# 一律 pause → OnGPIO → emulation RunFor "<虚拟秒>" 精确推进。
+# 事件同时打到 USART1 PTY(/tmp/libestdx-button):幕二 edge 行逐边沿,
+# 幕一 press/long/release 行只在稳定沿出现 —— $bounce 后对比两者行数。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/07_button_events/button_events
+$uart_pty?="/tmp/libestdx-button"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    gpioPortA OnGPIO 0 false
+    start
+"""
+
+macro press
+"""
+    pause
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.3"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.2"
+    start
+"""
+
+macro long
+"""
+    pause
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "1.0"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.2"
+    start
+"""
+
+# 抖动触摸:10ms 间隔三起三落(3 个上升沿),最终摸住 0.9s 再松开 ——
+# 幕二应报 3 行 edge,幕一只认 1 次 press(20ms×3 一致性窗滤毛刺)。
+macro bounce
+"""
+    pause
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.9"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.2"
+    start
+"""
+
+macro status
+"""
+    pause
+    sysbus ReadDoubleWord 0x40010808
+    sysbus ReadDoubleWord 0x4001100C
+    sysbus ReadDoubleWord 0x2000000C
+    start
+"""
+
+runMacro $reset

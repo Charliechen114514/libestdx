@@ -21,6 +21,7 @@ cmake --build build
 
 ```sh
 cmake --build build --target sim                 # 01_blinky
+cmake --build build --target sim_register_led   # 01_register_led, bare-register PC13
 cmake --build build --target sim_gpio_example    # 02_gpio
 cmake --build build --target sim_led_example     # 03_led
 cmake --build build --target sim_button_example  # 04_button
@@ -28,6 +29,10 @@ cmake --build build --target sim_uart_example    # 05_uart, USART1 PTY at /tmp/l
 cmake --build build --target check_uart_renode   # UART command console check
 cmake --build build --target sim_log_example     # 06_log, USART1 PTY at /tmp/libestdx-log
 cmake --build build --target check_log_renode    # log stream check (banner/pruning/timestamps)
+cmake --build build --target sim_button_events   # 07_button_events, USART1 PTY at /tmp/libestdx-button
+cmake --build build --target check_button_renode # EXTI chain check (3 bounce edges vs 1 debounced press)
+cmake --build build --target sim_ring_example    # 08_uart_ring, USART1 PTY at /tmp/libestdx-ring
+cmake --build build --target check_ring_renode   # interrupt ring console check (burst under busy loop)
 ```
 
 目标自带 `--console --disable-xwt`。前四个示例的 `watch` 会直播 GPIO ODR；
@@ -75,6 +80,26 @@ v1 边界：阻塞发送、仅线程上下文（ISR 禁用）、无 float、单 
 
 
 退出 `screen`：按 `Ctrl-A`、`K`、`Y`；退出 Renode：在 monitor 输入 `quit`。
+
+### 按键事件（07_button_events）
+
+输入线的两幕对拍:EXTI 下降沿中断（`libestdx/boards/stm32f1/exti.hpp`）
+把边沿时间戳经 SPSC 队列（`libestdx/base/spsc_queue.hpp`）交给主循环;
+采样一致性消抖（`device/debouncer.hpp`）+ 状态机（`base/state_machine.hpp` 概念+框架,`device/button.hpp` 里的 ButtonFsm 实例化,满足 `base::StateMachine` 概念）
+产出 `variant<Press, Release, LongPress>` 事件。`check_button_renode` 注入
+一串抖动（3 个下降沿）:中断链报 3 行 `edge`,消抖链只认 1 次 `press`,
+700ms 长按与松开顺序一并核对。monitor 注入用 `runMacro $press` / `$long` /
+`$bounce`;时序注入一律 `pause` → `emulation RunFor`（monitor 的 `sleep`
+等的是 host 时间,虚拟时间不成比例推进）。
+
+### 中断接收与环形缓冲（08_uart_ring）
+
+接收线的中断化对照篇（对 05_uart）:RXNE 中断逐字节进 64 字节 SPSC 环
+（`boards/stm32f1/uart_irq.hpp`）,主循环非阻塞消化;命令解析的错误路径走
+`std::expected`（失败带原因返回）。新增 `sleep MS` 命令模拟主循环被占:
+它忙 300ms 期间 burst 到达的命令照单全收、醒来按序响应 ——
+`check_ring_renode` 正是核对这个场景。相比 05 的轮询阻塞版,整条异步化
++ expected/variant 解析约 +732B flash / +104B RAM。
 
 ### STM32F103C8T6 真机烧录与串口
 

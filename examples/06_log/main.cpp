@@ -7,9 +7,11 @@
 #include "libestdx/boards/stm32f1/tick.hpp"
 #include "libestdx/boards/stm32f1/uart.hpp"
 #include "libestdx/device/led.hpp"
-#include "libestdx/logger/logger.hpp"
+#include "libestdx/logger/log.hpp"
 #include "libestdx/logger/sinks.hpp"
 #include "stm32f1xx_hal.h"
+
+namespace {
 
 using Serial = estdx::stm32f1::Uart<estdx::stm32f1::UartInstance::Usart1>;
 using LedPin = estdx::stm32f1::Gpio<estdx::stm32f1::GpioPort::C, GPIO_PIN_13,
@@ -18,13 +20,13 @@ using Led = estdx::device::LED<LedPin, estdx::gpio::GpioPolarity::ActiveLow>;
 
 // MinLevel=Info: the debug line below is not even instantiated, and its
 // literal must not survive into the firmware.
-using Log = estdx::logger::Logger<estdx::logger::UartLogSink<Serial>, estdx::logger::LogLevel::Info,
-                                  128, estdx::stm32f1::HalTickClock>;
+using Log = estdx::logger::Log<estdx::logger::UartLogSink<Serial>, estdx::logger::LogLevel::Info,
+                               128, estdx::stm32f1::HalTickClock>;
 
 static_assert(estdx::logger::LogSink<estdx::logger::UartLogSink<Serial>>);
 static_assert(estdx::logger::LogClock<estdx::stm32f1::HalTickClock>);
 
-static void SystemClock_Config() {
+void SystemClock_Config() {
     RCC_OscInitTypeDef osc{};
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     osc.HSIState = RCC_HSI_ON;
@@ -40,9 +42,11 @@ static void SystemClock_Config() {
     clk.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
     clk.APB1CLKDivider = RCC_HCLK_DIV2;
-    clk.APB2CLKDivider = RCC_HCLK_DIV1;
+    clk.APB2CLKDivider = RCC_SYSCLK_DIV1;
     HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2);
 }
+
+} // namespace
 
 int main() {
     HAL_Init();
@@ -51,15 +55,15 @@ int main() {
     Led::off();
     Serial::init();
 
-    Log::Self().error(estdx::logger::Tag("boot"), "libestdx 07_log example");
-    Log::Self().warn(estdx::logger::Tag("boot"), "MinLevel=Info, clock=HalTickClock");
-    Log::Self().info(estdx::logger::Tag("boot"), "watch PTY /tmp/libestdx-log");
-    Log::Self().debug(estdx::logger::Tag("boot"), "debug-marker-must-not-survive-MinLevel-Info");
+    Log::error(estdx::logger::Tag("boot"), "libestdx 07_log example");
+    Log::warn(estdx::logger::Tag("boot"), "MinLevel=Info, clock=HalTickClock");
+    Log::info(estdx::logger::Tag("boot"), "watch PTY /tmp/libestdx-log");
+    Log::debug(estdx::logger::Tag("boot"), "debug-marker-must-not-survive-MinLevel-Info");
 
     for (std::uint32_t n = 1;; ++n) {
         Led::toggle();
         HAL_Delay(500);
-        Log::Self().info(estdx::logger::Tag("led"), "blink=", n);
-        Log::Self().infof(estdx::logger::Tag("ledf"), "n={} hex={:x}", n, n);
+        Log::info(estdx::logger::Tag("led"), "blink=", n);
+        Log::infof(estdx::logger::Tag("ledf"), "n={} hex={:x}", n, n);
     }
 }

@@ -66,59 +66,6 @@ struct Logger {
         }
     }
 
-    // Convenience surface: the common entry points. Static so call sites
-    // stay short; they run on the single instance's state. (f-suffix naming
-    // adopted from CFDesktop's cflog.)
-    template <typename... Parts>
-    void trace(Tag tag, Parts&&... parts) {
-        log<LogLevel::Trace>(tag, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void debug(Tag tag, Parts&&... parts) {
-        log<LogLevel::Debug>(tag, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void info(Tag tag, Parts&&... parts) {
-        log<LogLevel::Info>(tag, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void hint(Tag tag, Parts&&... parts) {
-        log<LogLevel::Hint>(tag, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void warn(Tag tag, Parts&&... parts) {
-        log<LogLevel::Warn>(tag, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void error(Tag tag, Parts&&... parts) {
-        log<LogLevel::Error>(tag, std::forward<Parts>(parts)...);
-    }
-
-    template <typename... Parts>
-    void tracef(Tag tag, FormatString<std::type_identity_t<Parts>...> fmt, Parts&&... parts) {
-        logf<LogLevel::Trace>(tag, fmt, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void debugf(Tag tag, FormatString<std::type_identity_t<Parts>...> fmt, Parts&&... parts) {
-        logf<LogLevel::Debug>(tag, fmt, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void infof(Tag tag, FormatString<std::type_identity_t<Parts>...> fmt, Parts&&... parts) {
-        logf<LogLevel::Info>(tag, fmt, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void hintf(Tag tag, FormatString<std::type_identity_t<Parts>...> fmt, Parts&&... parts) {
-        logf<LogLevel::Hint>(tag, fmt, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void warnf(Tag tag, FormatString<std::type_identity_t<Parts>...> fmt, Parts&&... parts) {
-        logf<LogLevel::Warn>(tag, fmt, std::forward<Parts>(parts)...);
-    }
-    template <typename... Parts>
-    void errorf(Tag tag, FormatString<std::type_identity_t<Parts>...> fmt, Parts&&... parts) {
-        logf<LogLevel::Error>(tag, fmt, std::forward<Parts>(parts)...);
-    }
-
   private:
     // Per-segment format_to (NOT one big format string): the clock/location
     // combinations stay independent segments instead of a 4-way permutation.
