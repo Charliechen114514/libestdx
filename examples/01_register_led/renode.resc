@@ -1,0 +1,30 @@
+# 01_register_led 的上机脚本(自动化面:无 watch 噪音)。相对路径以仓库根
+# 解解(CMake target 的 WORKING_DIRECTORY 钉在仓库根)。
+# 启动:cmake --build build --target sim_register_led
+# 诊断快照同 03_led:GPIOC_ODR(0x4001100C,bit13:0=亮)+ uwTick。
+# 裸寄存器版的 ODR 行为与 HAL 版完全一致 —— 03 与 01 是同一盏灯的两种写法,
+# 这是"官方库到底替咱们做了什么"的机器证词。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/01_register_led/register_led
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    start
+"""
+
+macro status
+"""
+    pause
+    sysbus ReadDoubleWord 0x4001100C
+    sysbus ReadDoubleWord 0x2000000C
+    start
+"""
+
+runMacro $reset

@@ -1,0 +1,78 @@
+# 07_button_events 的人看版:与 renode.resc 同一套注入宏,多了 LED 直播。
+# 启动:cmake --build build --target sim_button_events 用的是自动化面,
+# 手动玩这个版:renode --console --disable-xwt 后手动 include 本文件。
+# 手动玩法:runMacro $bounce,然后去 PTY(/tmp/libestdx-button)对比
+# edge 行数(3,逐毛刺)与 press 行数(1,消抖后),同时看 LED 跟随。
+# 注意:执行任何命令都会打断 watch(04_button 的老规矩),看完重敲 watch。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/07_button_events/button_events
+$uart_pty?="/tmp/libestdx-button"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    gpioPortA OnGPIO 0 true
+    start
+"""
+
+macro press
+"""
+    pause
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.3"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.2"
+    start
+"""
+
+macro long
+"""
+    pause
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "1.0"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.2"
+    start
+"""
+
+# 抖动按压:10ms 间隔三起三落(3 个下降沿),最终按住 0.9s 再松开 ——
+# 幕二应报 3 行 edge,幕一只认 1 次 press(20ms×3 一致性窗滤毛刺)。
+macro bounce
+"""
+    pause
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.9"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.2"
+    start
+"""
+
+macro status
+"""
+    pause
+    sysbus ReadDoubleWord 0x40010808
+    sysbus ReadDoubleWord 0x4001100C
+    sysbus ReadDoubleWord 0x2000000C
+    start
+"""
+
+runMacro $reset
+
+# LED 直播:press 亮 / release 灭(长按不打扰 LED)。
+watch "sysbus ReadDoubleWord 0x4001100C" 700

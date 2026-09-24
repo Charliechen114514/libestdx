@@ -24,6 +24,11 @@ struct Gpio {
     static constexpr uint16_t mask = MASK;
     static constexpr uint8_t pin = static_cast<uint8_t>(std::countr_zero(MASK));
     static constexpr auto direction = DIRECTION;
+    // pull / port_index 本体用不到,是给 EXTI 留的只读反射:
+    // EXTI 要按线号写 AFIO_EXTICR 的端口选择位,需要知道引脚出身哪个端口。
+    static constexpr gpio::GpioPull pull = PULL;
+    static constexpr uint8_t port_index =
+        static_cast<uint8_t>((static_cast<uintptr_t>(PORT) - GPIOA_BASE) / 0x400);
 
     static void init() {
         enable_clock();

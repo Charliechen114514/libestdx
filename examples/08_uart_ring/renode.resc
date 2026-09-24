@@ -1,0 +1,24 @@
+# 08_uart_ring 的自动化面(check_renode.py include 这个)。
+# PTY:/tmp/libestdx-ring。burst 玩法:一条终端里连发
+#   sleep 300\r  ping\r  echo <长文本>\r
+# sleep 期间主循环被 HAL_Delay 占住,字节靠中断进环,醒来按序响应
+# —— 这是 05_uart(轮询阻塞)给不出的保证。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/08_uart_ring/uart_ring
+$uart_pty?="/tmp/libestdx-ring"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    start
+"""
+
+runMacro $reset
