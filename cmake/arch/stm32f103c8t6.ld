@@ -87,4 +87,5 @@ SECTIONS
 
     . = ALIGN(4);
     _end = .;   /* 堆从此向上,栈从 _estack 向下 */
+    PROVIDE(end = .);   /* newlib sbrk 引用不带下划线的 end(ST 官方 .ld 同款) */
 }
