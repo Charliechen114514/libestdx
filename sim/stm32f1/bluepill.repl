@@ -94,22 +94,22 @@ timer1: Timers.STM32_Timer @ sysbus 0x40012c00
     UpdateInterrupt -> nvic@25
     [TriggerInterrupt, CommutationInterrupt] -> nvic@[26, 26]
     CaptureCompareInterrupt -> nvic@27
-    frequency: 10000000
+    frequency: 64000000
     initialLimit: 0xFFFF
 
 timer2: Timers.STM32_Timer @ sysbus 0x40000000
     -> nvic@28
-    frequency: 10000000
+    frequency: 64000000
     initialLimit: 0xFFFF
 
 timer3: Timers.STM32_Timer @ sysbus 0x40000400
     -> nvic@29
-    frequency: 10000000
+    frequency: 64000000
     initialLimit: 0xFFFF
 
 timer4: Timers.STM32_Timer @ sysbus 0x40000800
     -> nvic@30
-    frequency: 10000000
+    frequency: 64000000
     initialLimit: 0xFFFF
 
 // C8T6 实有 DMA1(7 通道)。注意:Renode 1.16.1 的 UART/Timer 模型不暴露

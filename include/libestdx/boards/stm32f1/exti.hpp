@@ -5,21 +5,17 @@
 #include "libestdx/boards/stm32f1/hal/gpio.hpp"
 #include "libestdx/boards/stm32f1/hal/rcc.hpp"
 #include "libestdx/gpio/gpio_base.hpp"
+#include "libestdx/irq/irq_base.hpp"
 
 namespace estdx::stm32f1 {
 
 enum class ExtiEdge { Rising, Falling, Both };
 
-template <typename H>
-concept ExtiHandler = requires {
-    H::operator()();
-};
-
 namespace detail {
 inline std::uint16_t exti_line_claims = 0;
 } // namespace detail
 
-template <gpio::GPIOInputPin Pin, ExtiEdge EDGE, ExtiHandler Handler>
+template <gpio::GPIOInputPin Pin, ExtiEdge EDGE, irq::IrqHandler Handler>
 struct Exti {
     static constexpr std::uint8_t line = Pin::pin;
 

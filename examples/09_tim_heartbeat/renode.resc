@@ -1,0 +1,21 @@
+# 09_tim_heartbeat 的自动化面(check_renode.py include 这个)。
+# 时间推进纪律: pause → RunFor "<虚拟秒>", 不用 host sleep。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/09_tim_heartbeat/tim_heartbeat
+$uart_pty?="/tmp/libestdx-heartbeat"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    start
+"""
+
+runMacro $reset

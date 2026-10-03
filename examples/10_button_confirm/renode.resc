@@ -1,0 +1,62 @@
+# 10_button_confirm 的自动化面(check_renode.py include 这个)。
+# 触摸模块口径: 空闲低, 触摸高。时间推进一律 pause → RunFor。
+
+using sysbus
+
+mach create
+machine LoadPlatformDescription @sim/stm32f1/bluepill.repl
+
+$bin?=@build/examples/10_button_confirm/button_confirm
+$uart_pty?="/tmp/libestdx-confirm"
+emulation CreateUartPtyTerminal "uartTerminal" $uart_pty true
+connector Connect usart1 uartTerminal
+
+macro reset
+"""
+    pause
+    sysbus LoadELF $bin
+    gpioPortA OnGPIO 0 false
+    start
+"""
+
+macro press
+"""
+    pause
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.3"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.3"
+    start
+"""
+
+# 四连翻(2 完整抖动周期)后摸住 0.9s 再松: 窗每次沿顺延, 只认最终稳定态
+macro bounce
+"""
+    pause
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.01"
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.9"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.3"
+    start
+"""
+
+# 5ms 孤立毛刺: 窗到点时电平已回, 无事件
+macro glitch
+"""
+    pause
+    gpioPortA OnGPIO 0 true
+    emulation RunFor "0.005"
+    gpioPortA OnGPIO 0 false
+    emulation RunFor "0.3"
+    start
+"""
+
+runMacro $reset
